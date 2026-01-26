@@ -14,9 +14,9 @@ export const searchPerson = async (searchParams) => {
     console.log("Initiating Search:", searchParams);
 
     if (USE_REAL_BACKEND && N8N_WEBHOOK_URL) {
-        // ⏳ Add 15-second timeout for slow internet
+        // ⏳ Add 60-second timeout for slow internet
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        const timeoutId = setTimeout(() => controller.abort(), 60000);
 
         try {
             const response = await fetch(N8N_WEBHOOK_URL, {
