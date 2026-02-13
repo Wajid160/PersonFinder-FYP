@@ -12,7 +12,15 @@
 - **Responsive Design** — Fully optimized for desktop and mobile
 - **Beautiful UI** — Glassmorphism design, animated blobs, Framer Motion transitions
 
-## 🛠️ Tech Stack
+## � Screenshots
+
+### Search & Results Application
+![Khoji Search Results](docs/khoji-result-1.png)
+
+### Detailed Profile View
+![Khoji Details View](docs/khoji-result-2.png)
+
+## �🛠️ Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
@@ -74,21 +82,30 @@ src/
 ├── App.jsx              # Root component
 ├── index.css            # Tailwind + design tokens (light/dark)
 └── main.jsx             # Entry point
+docs/
+├── n8n-workflow.json    # Importable N8N workflow file
+├── n8n-workflow.png     # Visual workflow diagram
+└── ...                  # Project screenshots
 ```
 
 ## ⚙️ Backend (N8N)
 
-The search backend is powered by an N8N workflow that:
+The search backend is powered by an N8N workflow that orchestrates Google Custom Search API requests.
 
+### Workflow Logic
 1. Receives the search query via webhook
 2. Runs optimized Google searches for each platform (`site:linkedin.com/in`, `site:facebook.com`, `site:twitter.com`)
 3. Parses and structures the results
 4. Returns categorized JSON: `{ linkedin: [...], facebook: [...], twitter: [...] }`
 
-To set up your own N8N instance:
-1. Create an account at [n8n.io](https://n8n.io)
-2. Configure Google Custom Search API credentials
-3. Set the webhook URL in your `.env` file
+![N8N Workflow Diagram](docs/n8n-workflow.png)
+
+### Setup Your Own Backend
+1. Create an N8N instance (self-hosted or cloud)
+2. Import the workflow file: [docs/n8n-workflow.json](docs/n8n-workflow.json)
+3. Set up **Google Custom Search API** credentials in N8N
+4. Configure the Google Search nodes with your `CX` (Search Engine ID) and API key credential
+5. Set the webhook URL in your frontend `.env` file
 
 ## 📄 License
 

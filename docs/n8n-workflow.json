@@ -1,0 +1,390 @@
+{
+  "name": "Khoji - OSINT Backend Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "person-finder",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -512,
+        80
+      ],
+      "webhookId": "person-finder-hook",
+      "id": "f010a244-05ed-44ba-8ef0-fab3ce241c86"
+    },
+    {
+      "parameters": {
+        "url": "https://www.googleapis.com/customsearch/v1",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "cx",
+              "value": "YOUR_GOOGLE_SEARCH_ENGINE_ID"
+            },
+            {
+              "name": "q",
+              "value": "=intitle:\"{{ $json.body.query }}\" site:linkedin.com/in -\"people also viewed\" -\"similar profiles\" {{ $json.body.location ? $json.body.location : '' }} {{ $json.body.company ? $json.body.company : '' }}"
+            },
+            {
+              "name": "num",
+              "value": "5"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "name": "Search LinkedIn",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -288,
+        -112
+      ],
+      "id": "8d2eb030-88dd-43e1-99d4-7af19cdd4a8d",
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "",
+          "name": "Google Custom Search API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://www.googleapis.com/customsearch/v1",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "cx",
+              "value": "YOUR_GOOGLE_SEARCH_ENGINE_ID"
+            },
+            {
+              "name": "q",
+              "value": "=intitle:\"{{ $json.body.query }}\" site:facebook.com -inurl:events -inurl:groups -inurl:pages -inurl:posts {{ $json.body.location ? $json.body.location : '' }}"
+            },
+            {
+              "name": "num",
+              "value": "5"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "name": "Search Facebook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -288,
+        80
+      ],
+      "id": "6be40436-8914-4eee-a001-a28a4f1148d5",
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "",
+          "name": "Google Custom Search API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://www.googleapis.com/customsearch/v1",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "cx",
+              "value": "YOUR_GOOGLE_SEARCH_ENGINE_ID"
+            },
+            {
+              "name": "q",
+              "value": "=intitle:\"{{ $json.body.query }} (@\" site:twitter.com OR site:x.com -inurl:/status/ -\"Replying to\""
+            },
+            {
+              "name": "num",
+              "value": "5"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "name": "Search Twitter",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -64,
+        272
+      ],
+      "id": "6c1e8225-e95d-4ccc-95f5-71187a250d21",
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "",
+          "name": "Google Custom Search API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse and format LinkedIn results\nconst items = $input.all();\nconst linkedinData = items[0]?.json?.items || [];\n\nconst formatted = linkedinData.map(item => ({\n  platform: 'LinkedIn',\n  title: item.title || 'No Title',\n  link: item.link || '',\n  description: item.snippet || 'No description available',\n  confidence: calculateConfidence(item)\n}));\n\nfunction calculateConfidence(item) {\n  const query = $('Webhook').item.json.body.query.toLowerCase();\n  const location = $('Webhook').item.json.body.location?.toLowerCase() || '';\n  const university = $('Webhook').item.json.body.university?.toLowerCase() || '';\n  const company = $('Webhook').item.json.body.company?.toLowerCase() || '';\n  \n  const text = (item.title + ' ' + item.snippet).toLowerCase();\n  \n  let score = 0;\n  if (text.includes(query)) score += 40;\n  if (location && text.includes(location)) score += 20;\n  if (university && text.includes(university)) score += 20;\n  if (company && text.includes(company)) score += 20;\n  \n  return Math.min(score, 100);\n}\n\nreturn formatted;"
+      },
+      "name": "Parse LinkedIn",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -64,
+        -112
+      ],
+      "id": "ab84d578-bb37-47e6-9c8a-bbba54baf5f1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse and format Facebook results\nconst items = $input.all();\nconst facebookData = items[0]?.json?.items || [];\n\nconst formatted = facebookData.map(item => ({\n  platform: 'Facebook',\n  title: item.title || 'No Title',\n  link: item.link || '',\n  description: item.snippet || 'No description available',\n  confidence: calculateConfidence(item)\n}));\n\nfunction calculateConfidence(item) {\n  const query = $('Webhook').item.json.body.query.toLowerCase();\n  const location = $('Webhook').item.json.body.location?.toLowerCase() || '';\n  const university = $('Webhook').item.json.body.university?.toLowerCase() || '';\n  const company = $('Webhook').item.json.body.company?.toLowerCase() || '';\n  \n  const text = (item.title + ' ' + item.snippet).toLowerCase();\n  \n  let score = 0;\n  if (text.includes(query)) score += 40;\n  if (location && text.includes(location)) score += 20;\n  if (university && text.includes(university)) score += 20;\n  if (company && text.includes(company)) score += 20;\n  \n  return Math.min(score, 100);\n}\n\nreturn formatted;"
+      },
+      "name": "Parse Facebook",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -64,
+        80
+      ],
+      "id": "ccb0b5c9-d249-4e2a-9525-bea9d8d55ca8"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse and format Twitter results\nconst items = $input.all();\nconst twitterData = items[0]?.json?.items || [];\n\nconst formatted = twitterData.map(item => ({\n  platform: 'Twitter',\n  title: item.title || 'No Title',\n  link: item.link || '',\n  description: item.snippet || 'No description available',\n  confidence: calculateConfidence(item)\n}));\n\nfunction calculateConfidence(item) {\n  const query = $('Webhook').item.json.body.query.toLowerCase();\n  const location = $('Webhook').item.json.body.location?.toLowerCase() || '';\n  const university = $('Webhook').item.json.body.university?.toLowerCase() || '';\n  const company = $('Webhook').item.json.body.company?.toLowerCase() || '';\n  \n  const text = (item.title + ' ' + item.snippet).toLowerCase();\n  \n  let score = 0;\n  if (text.includes(query)) score += 40;\n  if (location && text.includes(location)) score += 20;\n  if (university && text.includes(university)) score += 20;\n  if (company && text.includes(company)) score += 20;\n  \n  return Math.min(score, 100);\n}\n\nreturn formatted;"
+      },
+      "name": "Parse Twitter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        272
+      ],
+      "id": "7b6f8520-a3f6-4ad1-9f47-e75d6769c2a1"
+    },
+    {
+      "parameters": {},
+      "name": "Merge Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        160,
+        -16
+      ],
+      "id": "4ac749b6-cf2c-48b6-aaa1-d36c02264dd6"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Organize results by platform\nconst items = $input.all();\n\nconst linkedin = [];\nconst facebook = [];\nconst twitter = [];\n\nitems.forEach(item => {\n  const data = item.json;\n  if (Array.isArray(data)) {\n    data.forEach(result => {\n      if (result.platform === 'LinkedIn') linkedin.push(result);\n      else if (result.platform === 'Facebook') facebook.push(result);\n      else if (result.platform === 'Twitter') twitter.push(result);\n    });\n  } else if (data.platform === 'LinkedIn') {\n    linkedin.push(data);\n  } else if (data.platform === 'Facebook') {\n    facebook.push(data);\n  } else if (data.platform === 'Twitter') {\n    twitter.push(data);\n  }\n});\n\nreturn [{\n  json: {\n    linkedin: linkedin.sort((a, b) => b.confidence - a.confidence),\n    facebook: facebook.sort((a, b) => b.confidence - a.confidence),\n    twitter: twitter.sort((a, b) => b.confidence - a.confidence)\n  }\n}];"
+      },
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        608,
+        80
+      ],
+      "id": "1d772016-3d7b-4c47-80ac-62a772e10c5e"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        832,
+        80
+      ],
+      "id": "2064e4c0-929f-4da8-b501-3adb82c03410"
+    },
+    {
+      "parameters": {},
+      "name": "Merge Results1",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        384,
+        80
+      ],
+      "id": "5b66b114-06a7-446f-9473-abf24771679f"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Search LinkedIn",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Search Facebook",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Search Twitter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search LinkedIn": {
+      "main": [
+        [
+          {
+            "node": "Parse LinkedIn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Facebook": {
+      "main": [
+        [
+          {
+            "node": "Parse Facebook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Twitter": {
+      "main": [
+        [
+          {
+            "node": "Parse Twitter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse LinkedIn": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Facebook": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Results": {
+      "main": [
+        [
+          {
+            "node": "Merge Results1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Results1": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Twitter": {
+      "main": [
+        [
+          {
+            "node": "Merge Results1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "a8889830-d1bb-4119-a4ef-d8b531602494",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "50b0c96a0d697fd892255c12085bfd4517b9a515cdf51f2e4298047942dc50ab"
+  },
+  "id": "gMayIRYZBmhgWM1PDb1bU",
+  "tags": []
+}
